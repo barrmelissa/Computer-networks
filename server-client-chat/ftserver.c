@@ -19,53 +19,70 @@
 #include <stdbool.h>
 #include <dirent.h>
 
-//function to tokenize and return the portnumber
-//clean this up by just setting return result[i] and pass in i instead!!!
+//CITATIONS:
+//#1: From my Operating Systems assignment #5 in CS344
+
+// #****************Tokenize Port function************
+// #Description: function to tokenize and return the client file
+// #Pre-conditions: readbuffer that holds message sent
+// #Post-conditions: client file tokenized and returned
 char *tokenizePort(char readbuffer[]){
 
     char *tok = readbuffer;
     char *result[100];
     int i = 0;
 
+    //tokenizes the message sent in readBuffer
     while ((tok = strtok(tok, " ")) != NULL){
-        // printf("%s\n", tok);
         result[i] = tok;
         i++;
         tok = NULL;
     }
     return result[1];
 }
-//clean up and take out
+
+// #****************Tokenize Port2 function************
+// #Description: function to tokenize and return the portnumber
+// #Pre-conditions: readbuffer that holds message sent
+// #Post-conditions: port number tokenized and returned
 char *tokenizePort2(char readbuffer[]){
 
     char *tok = readbuffer;
     char *result[100];
     int i = 0;
 
+    //tokenizes the message sent in readBuffer
     while ((tok = strtok(tok, " ")) != NULL){
-        // printf("%s\n", tok);
         result[i] = tok;
         i++;
         tok = NULL;
     }
     return result[2];
 }
-//clean up and take out
+
+// #****************Tokenize Port3 function************
+// #Description: function to tokenize and return the clientConnection
+// #Pre-conditions: readbuffer that holds message sent
+// #Post-conditions: clientConnection tokenized and returned
 char *tokenizePort3(char readbuffer[]){
 
     char *tok = readbuffer;
     char *result[100];
     int i = 0;
 
+    //tokenizes the message sent in readBuffer
     while ((tok = strtok(tok, " ")) != NULL){
-        // printf("%s\n", tok);
         result[i] = tok;
         i++;
         tok = NULL;
     }
     return result[3];
 }
-//getDirectory function, returns all files in current directory
+
+// #****************Get Directory function************
+// #Description: function to return all files in the current directory
+// #Pre-conditions: dirBuffer to hold the directory and hostname to append
+// #Post-conditions: dirBuffer filled with all files in the current directory
 int *getDirectory(char dirBuffer[], char hostname1[]){
 
     struct dirent *dp;
@@ -75,11 +92,14 @@ int *getDirectory(char dirBuffer[], char hostname1[]){
 
 	memset(dirBuffer, '\0', sizeof(dirBuffer)); // Clear the buffer
 
+    //opens the directory
     if((dir = opendir(".")) == NULL){
         printf("Error can't open");
     }
     strcat(dirBuffer, hostname1);
     strcat(dirBuffer, " ");
+    
+    //reads in all files in the directory
     do{
         if((dp = readdir(dir)) != NULL){
 
@@ -88,12 +108,14 @@ int *getDirectory(char dirBuffer[], char hostname1[]){
         } 
     }while (dp != NULL); 
     
-    // printf("We got: %s\n", dirBuffer);
-
     closedir(dir);
     return 0;
 }
-//checkDirectory function, returns yes or no if the directory asked for is in current directory
+
+// #****************Check Directory function************
+// #Description: function to return yes or no if the file asked is in the current directory
+// #Pre-conditions: dirBuffer to hold the directory, host name to append, and clientFile to look for
+// #Post-conditions: return 0 or 1 if the file is in the current directory
 int checkDirectory(char dirBuffer[], char hostname1[], char* clientFile){
 
     struct dirent *dp;
@@ -101,55 +123,46 @@ int checkDirectory(char dirBuffer[], char hostname1[], char* clientFile){
     char tempBuffer[1000];
     size_t bytes_read;
 
+    //opens the directory
     if((dir = opendir(".")) == NULL){
         printf("Error can't open");
     }
 
+    //reads in all files in the directory
     do{
         if((dp = readdir(dir)) != NULL){
 
-            //look for a certain one, use this when validating that the file we are looking for is in the directory
+            //looking if the fileName requested is in the current directory
             if(strcmp(dp->d_name, clientFile) == 0){
                     return 1;
             }          
         } 
     }while (dp != NULL); 
 
-    // printf("We got: %s\n", dirBuffer);
-
     closedir(dir);
     return 0;
 }
 
+// #****************Process Connection function************
+// #Description: this function does the bulk of the work, creates memory to hold the files sent, recieves the message
+// from the client, sets up data connection, sends file or directory, closes data connection
+// #Pre-conditions: first p connection established
+// #Post-conditions: q connection started and closed, data sent via q connection
+int process_connection(char buffer[], int charsRead, int establishedConnectionFD, int portNumber, char hostname1[1024]){
 
-int process_child(char buffer[], int charsRead, int establishedConnectionFD, char encryptedString[180000], int portNumber, char hostname1[1024]){
-
-    //CITE: From my OS5 assignment
-	//making a buffer size of 180000 to have enough space to hold the large files + the large keys that are strcat together
-	// char sendBuffer[1000000];
-
-    // memset(sendBuffer, '\0', 1000000);	
+    //*****************CITATION #1 START***************
+    //setting memory
     char *sendBuffer;
     sendBuffer = malloc(sizeof(char) * 10010000);
 	char readBuffer[100000];
-    // char sendBuffer[1000000];
     char *tempBuffer;
     tempBuffer = malloc(sizeof(char) * 10010000);
-    // tempBuffer = (char *) malloc(10000000);
 
-    // printf("Size of temp buffer: %d\n", 10010000);
-
-    // char tempBuffer[1000005];
- 
     memset(tempBuffer, '\0', 10010000); // Clear the buffer
-	
-
 	memset(sendBuffer, '\0', 10010000); // Clear the buffer
-
     memset(readBuffer, '\0', sizeof(readBuffer)); // Clear the buffer
     charsRead = recv(establishedConnectionFD, readBuffer, sizeof(readBuffer) - 1, 0); // Get the next chunk
-
-    // printf("WE RECIEVED: %s\n", readBuffer);
+    //*****************CITATION #1 END***************
 
     char* clientPortNum;
     char* clientConnection;
@@ -157,6 +170,56 @@ int process_child(char buffer[], int charsRead, int establishedConnectionFD, cha
     char dirBuffer[1000];
     clientConnection = tokenizePort2(readBuffer);
     clientPortNum = tokenizePort(readBuffer);
+
+    char* clientPort2;
+    char* clientFile;
+    char* clientConnection1;
+
+    if(readBuffer[1] == 'g'){
+        clientConnection1 = tokenizePort3(readBuffer);
+        clientFile = tokenizePort(readBuffer);
+        clientPort2 = tokenizePort2(readBuffer);
+    }
+
+    //*****************CITATION #1 START***************
+    //setting variables
+	int listenSocketQ, establishedConnectionQ, portNumber2;
+	socklen_t sizeOfClientInfo;
+	struct sockaddr_in serverAddress2, clientAddress2;
+
+	// Set up the address struct for this process (the server)
+	memset((char *)&serverAddress2, '\0', sizeof(serverAddress2)); // Clear out the address struct
+	if(readBuffer[1] == 'g'){
+        portNumber = atoi(clientPort2); // Get the port number, convert to an integer from a string
+    }
+    else{
+        portNumber = atoi(clientPortNum); // Get the port number, convert to an integer from a string
+
+    }
+    serverAddress2.sin_family = AF_INET; // Create a network-capable socket
+	serverAddress2.sin_port = htons(portNumber); // Store the port number
+	serverAddress2.sin_addr.s_addr = INADDR_ANY; // Any address is allowed for connection to this process
+
+	// Set up the socket
+	listenSocketQ = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
+	if (listenSocketQ < 0) error("ERROR opening socket");
+
+    if (setsockopt(listenSocketQ, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int)) < 0)
+        error("setsockopt(SO_REUSEADDR) failed");
+
+	// Enable the socket to begin listening
+	if (bind(listenSocketQ, (struct sockaddr *)&serverAddress2, sizeof(serverAddress2)) < 0) // Connect socket to port
+		printf("ERROR on binding");
+
+	listen(listenSocketQ, 5); // Flip the socket on - it can now receive up to 5 connections
+
+    sizeOfClientInfo = sizeof(clientAddress2); // Get the size of the address for the client that will connect
+    establishedConnectionQ = accept(listenSocketQ, (struct sockaddr *)&clientAddress2, &sizeOfClientInfo); // Accept
+    
+    if (establishedConnectionQ < 0){
+        printf("ERROR1 on accept\n");
+    }        
+    //*****************CITATION #1 END***************
 
     //we know we want to list
     if(readBuffer[1] == 'l'){
@@ -167,109 +230,50 @@ int process_child(char buffer[], int charsRead, int establishedConnectionFD, cha
 
         //getDirectory function
         getDirectory(dirBuffer, hostname1);
-        charsRead = send(establishedConnectionFD, dirBuffer, strlen(dirBuffer), 0); // Send success back
+        //send the directory
+        charsRead = send(establishedConnectionQ, dirBuffer, strlen(dirBuffer), 0); // Send success back
         if (charsRead < 0) error("ERROR writing to socket");
+
+        //close connection
+        close(establishedConnectionQ);
+        close(listenSocketQ);
 
         return 0;
     }
     else if(readBuffer[1] == 'g'){      //we know we want to get
-        sleep(5);
-        //clean up and make one
-        char* clientConnection1;
-        clientConnection1 = tokenizePort3(readBuffer);
-        char* clientFile;
-        clientFile = tokenizePort(readBuffer);
-        char* clientPort2;
-        clientPort2 = tokenizePort2(readBuffer);
-
+        
         printf("Connection from %s.\n", clientConnection1);
         printf("File \"%s\" requested on port %s.\n", clientFile, clientPort2);
-
-        printf("Here8\n");
-
-        int socketQ, portNumber1;
-                printf("Here9\n");
-
-	    struct sockaddr_in serverAddress2;
-                printf("Here10\n");
-
-	    struct hostent* serverHostInfo;
-        printf("Here4\n");
-
-        portNumber1 = atoi(clientPort2); 
-        printf("Here5\n");
-
-        memset((char*)&serverAddress2, '\0', sizeof(serverAddress2)); // Clear out the address struct
-                printf("Here6\n");
-
-        serverAddress2.sin_family = AF_INET; // Create a network-capable socket
-                printf("Here7\n");
-
-        serverAddress2.sin_port = htons(10294); // Store the port number
-        // serverHostInfo = gethostbyname("localhost"); // Convert the machine name into a special form of address
-        char* hostBuffer[1024];
-        // int serverHostInfo;     
-
-        printf("Here1\n");
-        serverHostInfo = gethostbyname("flip3"); // Convert the machine name into a special form of address
-
-        if (serverHostInfo == NULL) { fprintf(stderr, "CLIENT: ERROR, no such host\n"); exit(0); }
-        memcpy((char*)&serverAddress2.sin_addr.s_addr, (char*)serverHostInfo->h_addr, serverHostInfo->h_length); // Copy in the address
-        printf("Here1\n");
-
-        // Set up the socket
-	    socketQ = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
-	    if (socketQ < 0) error("CLIENT: ERROR opening socket");
-	        printf("Here1\n");
-
-	    // Connect to server
-	    if (connect(socketQ, (struct sockaddr*)&serverAddress2, sizeof(serverAddress2)) < 0) // Connect socket to address
-		    error("CLIENT: ERROR connecting");
-        
 
         //checking if file is in directory
         int check;
         int size = 0;
         check = checkDirectory(dirBuffer, hostname1, clientFile);
         if(check == 1){
-            printf("YEP, IT'S THERE\n");
 
             int bytecount;
             char c;
             size_t bytes_read;
 
-
+            //open and read the file
             FILE* fp = fopen(clientFile, "r");
-    
-            //read the contents of the file into sendBuffer
-            // bytes_read = fread(sendBuffer, 1, sizeof(sendBuffer), fp);
-            
-            // fseek(fp, 0, SEEK_END);
-            // size = ftell(fp);   
-            // fseek(fp, 0, SEEK_SET);
-
-            // printf("Size starts as: %d\n", size);
-
             bytes_read = fread(tempBuffer, 1, 10010000, fp);
-            // printf("We read %s\n", tempBuffer);
-            // size = size - sizeof(tempBuffer);
-            // printf("Size is now: %d\n", size);
 
-            // printf("What is in tempBuffer %s\n", tempBuffer);
-
+            //adding the hostname to the front of the file
             strcat(sendBuffer, hostname1);
             strcat(sendBuffer, tempBuffer);
             strcat(sendBuffer, "@!");
-
 
             int total = 0;
             int len = strlen(sendBuffer);
             int bytesleft = len;
             int n;
 
+            //sending the file in chunks
             while(total < len){
 
-                n = send(socketQ, sendBuffer+total, bytesleft, 0);
+                n = send(establishedConnectionQ, sendBuffer+total, bytesleft, 0);
+
                 if(n == -1){
                     break;
                 }
@@ -280,54 +284,73 @@ int process_child(char buffer[], int charsRead, int establishedConnectionFD, cha
 
             len = total;
 
-            printf("Total send: %d", total);
-
-
-
-            //send buffer with contents of file
-            // charsRead = send(establishedConnectionFD, sendBuffer, bytes_read, 0);
-
             printf("Sending \"%s\" to %s:%s\n", clientFile, clientConnection1, clientPort2);
+            printf("Total sent: %d bytes\n", total);
+
             fclose(fp);
 
-            close(socketQ);
+            //close connection
+            close(establishedConnectionQ);
+            close(listenSocketQ);
 
         }
         else{
             //send back error if file is not in directory
             printf("File not found. Sending error message to %s:%s\n", clientConnection1, clientPort2);
-            char *message;
-            message = "FILE NOT FOUND@!";
-            charsRead = send(socketQ, message, strlen(message), 0); // Send success back
+            char totalMessage[2024];
+            //adding the hostname ot the front of the message
+            strcat(totalMessage, hostname1);
+            strcat(totalMessage, "FILE NOT FOUND@!");
+            charsRead = send(establishedConnectionQ, totalMessage, strlen(totalMessage), 0); // Send success back
             if (charsRead < 0) error("ERROR writing to socket");
+            memset(totalMessage, '\0', 2024); // Clear the buffer
 
-            close(socketQ);
+            //close connection
+            close(establishedConnectionQ);
+            close(listenSocketQ);
         }
 
         return 0;
     }
     else{
+        //if it is neither of the above, then invalid input
         printf("Invalid input\n");
         char *message;
         message = "ERROR - Invalid input";
-        charsRead = send(establishedConnectionFD, message, strlen(message), 0); // Send success back
+        charsRead = send(establishedConnectionQ, message, strlen(message), 0); // Send success back
         if (charsRead < 0) error("ERROR writing to socket");
+
+        close(establishedConnectionQ);
+        close(listenSocketQ);
 
     }
 	
-    // close(establishedConnectionFD); // Close the existing socket which is connected to the client
-
 }
 
-
-//taking command line arguments
+// #****************Main function************
+// #Description: function to take in and validate the command line arguments, set up first p connection
+// #Pre-conditions: command line arguments
+// #Post-conditions: p connection set up and listening until ended via a SIGINT
 int main(int argc, char *argv[])
 {
-    //CITE from my OS5 assignment
-	//creating a size of 180000 to hold large files
-	char encryptedString[180000];
 
-	//code from lecture
+    printf("Hello, you need to login in order to use the server\n");
+    printf("Username: \n");
+    char userName[1024];
+    scanf("%s", userName);
+    printf("Password(case sensitive): \n");
+    char userPass[1024];
+    scanf("%s", userPass);
+    if(strcmp(userPass, "computerNetworksYay") != 0){
+        printf("Incorrect password, please look at the README\n");
+        exit(0);
+    }
+    else{
+        printf("Great, lets get started!\n\n");
+    }
+
+
+    //*****************CITATION #1 START***************
 	int listenSocketFD, establishedConnectionFD, portNumber, charsRead;
 	socklen_t sizeOfClientInfo;
 	char buffer[180000];
@@ -340,6 +363,7 @@ int main(int argc, char *argv[])
 	serverAddress.sin_family = AF_INET; // Create a network-capable socket
 	serverAddress.sin_port = htons(portNumber); // Store the port number
 	serverAddress.sin_addr.s_addr = INADDR_ANY; // Any address is allowed for connection to this process
+    //*****************CITATION #1 END***************
 
     //to get the hostname
     char hostname[1024];
@@ -351,6 +375,7 @@ int main(int argc, char *argv[])
         hostname1[i] = hostname[i];
     }
 
+    //*****************CITATION #1 START***************
 	// Set up the socket
 	listenSocketFD = socket(AF_INET, SOCK_STREAM, 0); // Create the socket
 	if (listenSocketFD < 0) error("ERROR opening socket");
@@ -367,28 +392,19 @@ int main(int argc, char *argv[])
 
 		sizeOfClientInfo = sizeof(clientAddress); // Get the size of the address for the client that will connect
 		establishedConnectionFD = accept(listenSocketFD, (struct sockaddr *)&clientAddress, &sizeOfClientInfo); // Accept
-		
         if (establishedConnectionFD < 0){
 			printf("ERROR1 on accept\n");
 		}
+        //*****************CITATION #1 END***************
+
         
-        //calls the function to process the child
-        while(1){
-
-            //put new connection here?
-            //maybe inside process_child is better?
-
-            process_child(buffer, charsRead, establishedConnectionFD, encryptedString, portNumber, hostname1);
-            printf("Out of process_child\n");
-        }
+        process_connection(buffer, charsRead, establishedConnectionFD, portNumber, hostname1);
+    
 
         //closes the connection
-        // close(establishedConnectionFD);
-        // exit(0);
+        close(establishedConnectionFD);
 
 	}
-        close(establishedConnectionFD);
-        exit(0);
 
 		close(listenSocketFD); // Close the listening socket
 	
